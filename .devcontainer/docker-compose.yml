@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Update the VARIANT arg to pick a version of Go: 1, 1.16, 1.15
+        "VARIANT": "1.19-bullseye"
+        # Options
+        "INSTALL_NODE": "false"
+        "NODE_VERSION": "lts/*"
+    container_name: airbyte_destination_csv_app
+    volumes:
+    - ..:/workspaces/airbyte_destination_csv:cached
+    command: sleep infinity
+    # env_file:
+      # Ensure that the variables in .env match the same variables in devcontainer.json
+      # - .env
