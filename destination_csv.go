@@ -128,7 +128,7 @@ func (d *destinationCsv) createDestinationPath(
 	cp messenger.ConfigParser,
 ) (string, error) {
 	var dc destinationConfiguration
-	err := cp.UnmarshalSourceConfigPath(&dc)
+	err := cp.UnmarshalConfigPath(&dc)
 	if err != nil {
 		return "", err
 	}
