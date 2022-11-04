@@ -4,3 +4,5 @@ github.com/theobitoproject/kankuro v1.18.1 h1:zQ3u/TWgcLJoyG26mhk1w8fofbf0kaFb8y
 github.com/theobitoproject/kankuro v1.18.1/go.mod h1:zG4n3qil92RIjQvXqe57yrliflASx+3zgRBCl2hAhrA=
 github.com/theobitoproject/kankuro v1.20.0 h1:k6M4pdo2MmqMfBM49To8Bvz1Ts034NLxkXAmbw4S1ZA=
 github.com/theobitoproject/kankuro v1.20.0/go.mod h1:zG4n3qil92RIjQvXqe57yrliflASx+3zgRBCl2hAhrA=
+github.com/theobitoproject/kankuro v1.21.0 h1:Xl06q+dQ67RfK7e5uDa4XOYvTzpOHoyY61l4ZIpDBHo=
+github.com/theobitoproject/kankuro v1.21.0/go.mod h1:zG4n3qil92RIjQvXqe57yrliflASx+3zgRBCl2hAhrA=

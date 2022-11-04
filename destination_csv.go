@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"strings"
+
 	"github.com/theobitoproject/kankuro/pkg/messenger"
 	"github.com/theobitoproject/kankuro/pkg/protocol"
 )
@@ -10,14 +13,16 @@ const (
 	csvWriterWorkers       = 2
 )
 
-type destinationCsv struct{}
+type destinationCsv struct {
+	rootPath string
+}
 
 type destinationConfiguration struct {
 	DestinationPath string `json:"destination_path"`
 }
 
-func newDestinationCsv() *destinationCsv {
-	return &destinationCsv{}
+func newDestinationCsv(rootPath string) *destinationCsv {
+	return &destinationCsv{rootPath}
 }
 
 // Spec returns the schema which described how the destination connector can be configured
@@ -28,7 +33,6 @@ func (d *destinationCsv) Spec(
 	return &protocol.ConnectorSpecification{
 		DocumentationURL:      "https://example-csv-api.com/",
 		ChangeLogURL:          "https://example-csv-api.com/",
-		SupportsIncremental:   false,
 		SupportsNormalization: false,
 		SupportsDBT:           false,
 		SupportedDestinationSyncModes: []protocol.DestinationSyncMode{
@@ -60,6 +64,7 @@ func (d *destinationCsv) Check(
 	mw messenger.MessageWriter,
 	cp messenger.ConfigParser,
 ) error {
+	// TODO: check properly
 	return nil
 }
 
@@ -77,8 +82,7 @@ func (d *destinationCsv) Write(
 		hub.GetErrorChannel() <- err
 	}
 
-	var dc destinationConfiguration
-	err = cp.UnmarshalSourceConfigPath(&dc)
+	absoluteDestinationPath, err := d.createDestinationPath(cp)
 	if err != nil {
 		hub.GetErrorChannel() <- err
 		return
@@ -94,7 +98,12 @@ func (d *destinationCsv) Write(
 		rm.addWorker()
 	}
 
-	cw := newCsvWriter(hub, csvRecordChan, csvWriterWorkersChan)
+	cw := newCsvWriter(
+		hub,
+		csvRecordChan,
+		absoluteDestinationPath,
+		csvWriterWorkersChan,
+	)
 	for i := 0; i < csvWriterWorkers; i++ {
 		cw.addWorker()
 	}
@@ -113,4 +122,30 @@ func (d *destinationCsv) Write(
 	cw.closeAndFlush()
 
 	close(hub.GetErrorChannel())
+}
+
+func (d *destinationCsv) createDestinationPath(
+	cp messenger.ConfigParser,
+) (string, error) {
+	var dc destinationConfiguration
+	err := cp.UnmarshalSourceConfigPath(&dc)
+	if err != nil {
+		return "", err
+	}
+
+	// TODO: is this the best way to check destination path
+	// starts with "/"
+	destinationPath := dc.DestinationPath
+	if !strings.HasPrefix(destinationPath, "/") {
+		destinationPath = "/" + destinationPath
+	}
+
+	absoluteDestinationPath := d.rootPath + destinationPath
+
+	err = os.MkdirAll(absoluteDestinationPath, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	return absoluteDestinationPath, nil
 }

@@ -5,10 +5,11 @@ import (
 	"os"
 
 	"github.com/theobitoproject/kankuro/pkg/destination"
+	"github.com/theobitoproject/kankuro/pkg/protocol"
 )
 
 func main() {
-	dst := newDestinationCsv()
+	dst := newDestinationCsv(protocol.LocalRoot)
 	runner := destination.NewSafeDestinationRunner(dst, os.Stdout, os.Stdin, os.Args)
 	err := runner.Start()
 	if err != nil {

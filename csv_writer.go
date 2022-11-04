@@ -7,11 +7,13 @@ import (
 	"sync"
 
 	"github.com/theobitoproject/kankuro/pkg/messenger"
+	"github.com/theobitoproject/kankuro/pkg/protocol"
 )
 
 type csvWriter struct {
 	hub            messenger.ChannelHub
 	csvRecordChann csvRecordChannel
+	path           string
 
 	workersDoneChan chan bool
 	fileWriterPairs map[string]*fileWriterPair
@@ -26,11 +28,13 @@ type fileWriterPair struct {
 func newCsvWriter(
 	hub messenger.ChannelHub,
 	csvRecordChann csvRecordChannel,
+	path string,
 	workersDoneChan chan bool,
 ) *csvWriter {
 	return &csvWriter{
 		hub:             hub,
 		csvRecordChann:  csvRecordChann,
+		path:            path,
 		workersDoneChan: workersDoneChan,
 		fileWriterPairs: map[string]*fileWriterPair{},
 		mu:              &sync.Mutex{},
@@ -73,7 +77,13 @@ func (cw *csvWriter) getFileWriterPairForStream(
 		return fwPair, nil
 	}
 
-	f, err := os.Create(fmt.Sprintf("/local/%s.csv", streamName))
+	filename := fmt.Sprintf(
+		"%s/%s%s.csv",
+		cw.path,
+		protocol.AirbyteRaw,
+		streamName,
+	)
+	f, err := os.Create(filename)
 	if err != nil {
 		return nil, err
 	}
