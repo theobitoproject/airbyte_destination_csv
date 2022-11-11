@@ -1,4 +1,6 @@
 .devcontainer
+sample_files
+secrets
 .dockerignore
 build.sh
 Dockerfile
