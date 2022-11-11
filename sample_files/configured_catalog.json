@@ -1,0 +1,159 @@
+{
+    "streams": [
+        {
+        "stream": {
+            "name": "beers",
+            "json_schema": {
+                "properties": {
+                    "alcohol": {
+                        "description": "level of alcohol of the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "examples": [
+                            "8.5%"
+                        ]
+                    },
+                    "blg": {
+                        "description": "level of bailing scale (sugar) of the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "examples": [
+                            "10.5°Blg"
+                        ]
+                    },
+                    "brand": {
+                        "description": "brand company name that produces the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "hop": {
+                        "description": "type of hop used for the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "examples": [
+                            "Crystal",
+                            "Hallertau"
+                        ]
+                    },
+                    "ibu": {
+                        "description": "level of ibu of the beer (international bitterness units)",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "examples": [
+                            "22 IBU"
+                        ]
+                    },
+                    "id": {
+                        "description": "id of the beer record",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "malts": {
+                        "description": "type of malts used for the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "examples": [
+                            "Rye malt",
+                            "Victory"
+                        ]
+                    },
+                    "name": {
+                        "description": "name of the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "style": {
+                        "description": "style of the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "examples": [
+                            "Scottish And Irish Ale",
+                            "European Amber Lager"
+                        ]
+                    },
+                    "uid": {
+                        "description": "unique id of the beer record",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "yeast": {
+                        "description": "type of yeast used for the beer",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "examples": [
+                            "1469 - West Yorkshire Ale",
+                            "2042 - Danish Lager"
+                        ]
+                    }
+                }
+            },
+            "supported_sync_modes": ["full_refresh"]
+        },
+        "sync_mode": "full_refresh",
+        "destination_sync_mode": "overwrite"
+        },
+        {
+        "stream": {
+            "name": "appliances",
+            "json_schema": {
+                "properties": {
+                    "brand": {
+                        "description": "brand company name that manufactures the appliance",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "equipment": {
+                        "description": "name of the appliance",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "id": {
+                        "description": "id of the appliance record",
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "uid": {
+                        "description": "unique id of the appliance record",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "supported_sync_modes": ["full_refresh", "incremental"]
+        },
+        "sync_mode": "incremental",
+        "destination_sync_mode": "append"
+        }
+    ]
+}
+  
