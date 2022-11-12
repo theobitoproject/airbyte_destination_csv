@@ -10,8 +10,8 @@ import (
 
 const (
 	// TODO: is there are best way to handle the amount of workers?
-	recordMarshalerWorkers = 4
-	csvWriterWorkers       = 2
+	marshalerWorkers = 4
+	writerWorkers    = 2
 )
 
 // DestinationCsv is the Airbyte destination connector
@@ -22,9 +22,9 @@ type DestinationCsv struct {
 	m Marshaler
 	w Writer
 
-	rowChan                    RowChannel
-	recordMarshalerWorkersChan chan (bool)
-	csvWriterWorkersChan       chan (bool)
+	rowChan              RowChannel
+	marshalerWorkersChan chan (bool)
+	writerWorkersChan    chan (bool)
 }
 
 type destinationConfiguration struct {
@@ -37,16 +37,16 @@ func NewDestinationCsv(
 	m Marshaler,
 	w Writer,
 	rowChan RowChannel,
-	recordMarshalerWorkersChan chan (bool),
-	csvWriterWorkersChan chan (bool),
+	marshalerWorkersChan chan (bool),
+	writerWorkersChan chan (bool),
 ) *DestinationCsv {
 	return &DestinationCsv{
 		rootPath,
 		m,
 		w,
 		rowChan,
-		recordMarshalerWorkersChan,
-		csvWriterWorkersChan,
+		marshalerWorkersChan,
+		writerWorkersChan,
 	}
 }
 
@@ -115,26 +115,26 @@ func (d *DestinationCsv) Write(
 	}
 
 	d.m.ExtractHeaders(cc.Streams)
-	for i := 0; i < recordMarshalerWorkers; i++ {
+	for i := 0; i < marshalerWorkers; i++ {
 		d.m.AddWorker(hub)
 	}
 
-	for i := 0; i < csvWriterWorkers; i++ {
+	for i := 0; i < writerWorkers; i++ {
 		d.w.AddWorker(hub, absoluteDestinationPath)
 	}
 
-	for i := 0; i < recordMarshalerWorkers; i++ {
-		<-d.recordMarshalerWorkersChan
+	for i := 0; i < marshalerWorkers; i++ {
+		<-d.marshalerWorkersChan
 	}
 
 	close(d.rowChan)
 
-	for i := 0; i < csvWriterWorkers; i++ {
-		<-d.csvWriterWorkersChan
+	for i := 0; i < writerWorkers; i++ {
+		<-d.writerWorkersChan
 	}
 
-	close(d.recordMarshalerWorkersChan)
-	close(d.csvWriterWorkersChan)
+	close(d.marshalerWorkersChan)
+	close(d.writerWorkersChan)
 
 	d.w.CloseAndFlush()
 

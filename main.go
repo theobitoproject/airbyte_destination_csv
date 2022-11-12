@@ -4,29 +4,35 @@ import (
 	"log"
 	"os"
 
-	"github.com/theobitoproject/airbyte_destination_csv/pkg/csv"
 	"github.com/theobitoproject/kankuro/pkg/destination"
 	"github.com/theobitoproject/kankuro/pkg/protocol"
+
+	"github.com/theobitoproject/airbyte_destination_csv/pkg/csv"
 )
 
 func main() {
 	rowChan := csv.NewRowChannel()
-	recordMarshalerWorkersChan := make(chan bool)
-	csvWriterWorkersChan := make(chan bool)
+	marshalerWorkersChan := make(chan bool)
+	writerWorkersChan := make(chan bool)
 
-	rm := csv.NewMarshaler(rowChan, recordMarshalerWorkersChan)
-	cw := csv.NewWriter(rowChan, csvWriterWorkersChan)
+	rm := csv.NewMarshaler(rowChan, marshalerWorkersChan)
+	cw := csv.NewWriter(rowChan, writerWorkersChan)
 
 	dst := csv.NewDestinationCsv(
 		protocol.LocalRoot,
 		rm,
 		cw,
 		rowChan,
-		recordMarshalerWorkersChan,
-		csvWriterWorkersChan,
+		marshalerWorkersChan,
+		writerWorkersChan,
 	)
 
-	runner := destination.NewSafeDestinationRunner(dst, os.Stdout, os.Stdin, os.Args)
+	runner := destination.NewSafeDestinationRunner(
+		dst,
+		os.Stdout,
+		os.Stdin,
+		os.Args,
+	)
 	err := runner.Start()
 	if err != nil {
 		log.Fatal(err)
