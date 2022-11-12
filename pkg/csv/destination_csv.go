@@ -1,4 +1,4 @@
-package pkg
+package csv
 
 import (
 	"os"
@@ -19,10 +19,10 @@ const (
 type DestinationCsv struct {
 	rootPath string
 
-	rm RecordMarshaler
-	cw CsvWriter
+	m Marshaler
+	w Writer
 
-	csvRecordChan              CsvRecordChannel
+	rowChan                    RowChannel
 	recordMarshalerWorkersChan chan (bool)
 	csvWriterWorkersChan       chan (bool)
 }
@@ -34,17 +34,17 @@ type destinationConfiguration struct {
 // NewDestinationCsv creates a new instance of DestinationCsv
 func NewDestinationCsv(
 	rootPath string,
-	rm RecordMarshaler,
-	cw CsvWriter,
-	csvRecordChan CsvRecordChannel,
+	m Marshaler,
+	w Writer,
+	rowChan RowChannel,
 	recordMarshalerWorkersChan chan (bool),
 	csvWriterWorkersChan chan (bool),
 ) *DestinationCsv {
 	return &DestinationCsv{
 		rootPath,
-		rm,
-		cw,
-		csvRecordChan,
+		m,
+		w,
+		rowChan,
 		recordMarshalerWorkersChan,
 		csvWriterWorkersChan,
 	}
@@ -114,26 +114,21 @@ func (d *DestinationCsv) Write(
 		return
 	}
 
-	// rm := newRecordMarshaler(hub, csvRecordChan, recordMarshalerWorkersChan)
-	d.rm.ExtractHeaders(cc.Streams)
+	d.m.ExtractHeaders(cc.Streams)
 	for i := 0; i < recordMarshalerWorkers; i++ {
-		d.rm.AddWorker(hub)
+		d.m.AddWorker(hub)
 	}
 
-	// cw := newCsvWriter(
-	// 	hub,
-	// 	csvRecordChan,
-	// 	absoluteDestinationPath,
-	// 	csvWriterWorkersChan,
-	// )
 	for i := 0; i < csvWriterWorkers; i++ {
-		d.cw.AddWorker(hub, absoluteDestinationPath)
+		d.w.AddWorker(hub, absoluteDestinationPath)
 	}
 
 	for i := 0; i < recordMarshalerWorkers; i++ {
 		<-d.recordMarshalerWorkersChan
 	}
-	close(d.csvRecordChan)
+
+	close(d.rowChan)
+
 	for i := 0; i < csvWriterWorkers; i++ {
 		<-d.csvWriterWorkersChan
 	}
@@ -141,7 +136,7 @@ func (d *DestinationCsv) Write(
 	close(d.recordMarshalerWorkersChan)
 	close(d.csvWriterWorkersChan)
 
-	d.cw.CloseAndFlush()
+	d.w.CloseAndFlush()
 
 	close(hub.GetErrorChannel())
 }

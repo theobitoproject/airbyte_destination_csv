@@ -4,24 +4,24 @@ import (
 	"log"
 	"os"
 
-	"github.com/theobitoproject/airbyte_destination_csv/pkg"
+	"github.com/theobitoproject/airbyte_destination_csv/pkg/csv"
 	"github.com/theobitoproject/kankuro/pkg/destination"
 	"github.com/theobitoproject/kankuro/pkg/protocol"
 )
 
 func main() {
-	csvRecordChan := pkg.NewCsvRecordChannel()
+	rowChan := csv.NewRowChannel()
 	recordMarshalerWorkersChan := make(chan bool)
 	csvWriterWorkersChan := make(chan bool)
 
-	rm := pkg.NewRecordMarshaler(csvRecordChan, recordMarshalerWorkersChan)
-	cw := pkg.NewCsvWriter(csvRecordChan, csvWriterWorkersChan)
+	rm := csv.NewMarshaler(rowChan, recordMarshalerWorkersChan)
+	cw := csv.NewWriter(rowChan, csvWriterWorkersChan)
 
-	dst := pkg.NewDestinationCsv(
+	dst := csv.NewDestinationCsv(
 		protocol.LocalRoot,
 		rm,
 		cw,
-		csvRecordChan,
+		rowChan,
 		recordMarshalerWorkersChan,
 		csvWriterWorkersChan,
 	)
