@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"encoding/csv"
@@ -10,10 +10,18 @@ import (
 	"github.com/theobitoproject/kankuro/pkg/protocol"
 )
 
+// CsvWriter takes csv records and writes them into files
+type CsvWriter interface {
+	// AddWorker adds a new thread to write csv records in a file
+	AddWorker(messenger.ChannelHub, string)
+	// CloseAndFlush performs final cleaning
+	// after all csv records are written
+	CloseAndFlush()
+}
+
 type csvWriter struct {
 	hub            messenger.ChannelHub
-	csvRecordChann csvRecordChannel
-	path           string
+	csvRecordChann CsvRecordChannel
 
 	workersDoneChan chan bool
 	fileWriterPairs map[string]*fileWriterPair
@@ -25,23 +33,24 @@ type fileWriterPair struct {
 	writer *csv.Writer
 }
 
-func newCsvWriter(
-	hub messenger.ChannelHub,
-	csvRecordChann csvRecordChannel,
-	path string,
+// NewCsvWriter creates a new instance of CsvWriter
+func NewCsvWriter(
+	csvRecordChann CsvRecordChannel,
 	workersDoneChan chan bool,
-) *csvWriter {
+) CsvWriter {
 	return &csvWriter{
-		hub:             hub,
 		csvRecordChann:  csvRecordChann,
-		path:            path,
 		workersDoneChan: workersDoneChan,
 		fileWriterPairs: map[string]*fileWriterPair{},
 		mu:              &sync.Mutex{},
 	}
 }
 
-func (cw *csvWriter) addWorker() {
+// AddWorker adds a new thread to write csv records in a file
+func (cw *csvWriter) AddWorker(
+	hub messenger.ChannelHub,
+	path string,
+) {
 	go func() {
 		for {
 			csvRec, channelOpen := <-cw.csvRecordChann
@@ -52,7 +61,10 @@ func (cw *csvWriter) addWorker() {
 
 			cw.mu.Lock()
 
-			fwPair, err := cw.getFileWriterPairForStream(csvRec.streamName)
+			fwPair, err := cw.getFileWriterPairForStream(
+				path,
+				csvRec.streamName,
+			)
 			if err != nil {
 				cw.hub.GetErrorChannel() <- err
 				continue
@@ -69,7 +81,17 @@ func (cw *csvWriter) addWorker() {
 	}()
 }
 
+// CloseAndFlush performs final cleaning
+// after all csv records are written
+func (cw *csvWriter) CloseAndFlush() {
+	for _, fileWriterPair := range cw.fileWriterPairs {
+		fileWriterPair.writer.Flush()
+		fileWriterPair.file.Close()
+	}
+}
+
 func (cw *csvWriter) getFileWriterPairForStream(
+	path string,
 	streamName string,
 ) (*fileWriterPair, error) {
 	fwPair, created := cw.fileWriterPairs[streamName]
@@ -79,7 +101,7 @@ func (cw *csvWriter) getFileWriterPairForStream(
 
 	filename := fmt.Sprintf(
 		"%s/%s%s.csv",
-		cw.path,
+		path,
 		protocol.AirbyteRaw,
 		streamName,
 	)
@@ -102,11 +124,4 @@ func (cw *csvWriter) getFileWriterPairForStream(
 
 func (cw *csvWriter) removeWorker() {
 	cw.workersDoneChan <- true
-}
-
-func (cw *csvWriter) closeAndFlush() {
-	for _, fileWriterPair := range cw.fileWriterPairs {
-		fileWriterPair.writer.Flush()
-		fileWriterPair.file.Close()
-	}
 }

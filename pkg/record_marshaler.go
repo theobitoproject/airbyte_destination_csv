@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"strconv"
@@ -7,28 +7,40 @@ import (
 	"github.com/theobitoproject/kankuro/pkg/protocol"
 )
 
+// RecordMarshaler takes incoming record messages,
+// creates csv records and send these to the next stage of processing
+type RecordMarshaler interface {
+	// AddWorker adds a new thread to marshal records async
+	// and send these to the next stage of processing
+	AddWorker(messenger.ChannelHub)
+	// ExtractHeaders defines the headers that should be written
+	// in the csv file, creates a csv record
+	// and send these to the next stage of processing
+	ExtractHeaders([]protocol.ConfiguredStream)
+}
+
 type recordMarshaler struct {
-	hub             messenger.ChannelHub
-	csvRecordChann  csvRecordChannel
+	csvRecordChann  CsvRecordChannel
 	workersDoneChan chan bool
 }
 
-func newRecordMarshaler(
-	hub messenger.ChannelHub,
-	csvRecordChann csvRecordChannel,
+// NewRecordMarshaler creates a new instance of RecordMarshaler
+func NewRecordMarshaler(
+	csvRecordChann CsvRecordChannel,
 	workersDoneChan chan bool,
-) *recordMarshaler {
+) RecordMarshaler {
 	return &recordMarshaler{
-		hub:             hub,
 		csvRecordChann:  csvRecordChann,
 		workersDoneChan: workersDoneChan,
 	}
 }
 
-func (rm *recordMarshaler) addWorker() {
+// AddWorker adds a new thread to marshal records async
+// and send these to the next stage of processing
+func (rm *recordMarshaler) AddWorker(hub messenger.ChannelHub) {
 	go func() {
 		for {
-			rec, channelOpen := <-rm.hub.GetRecordChannel()
+			rec, channelOpen := <-hub.GetRecordChannel()
 			if !channelOpen {
 				rm.removeWorker()
 				return
@@ -36,7 +48,7 @@ func (rm *recordMarshaler) addWorker() {
 
 			csvRec, err := rm.marshal(rec)
 			if err != nil {
-				rm.hub.GetErrorChannel() <- err
+				hub.GetErrorChannel() <- err
 				continue
 			}
 
@@ -45,7 +57,10 @@ func (rm *recordMarshaler) addWorker() {
 	}()
 }
 
-func (rm *recordMarshaler) writeHeaders(streams []protocol.ConfiguredStream) {
+// ExtractHeaders defines the headers that should be written
+// in the csv file, creates a csv record
+// and send these to the next stage of processing
+func (rm *recordMarshaler) ExtractHeaders(streams []protocol.ConfiguredStream) {
 	go func() {
 		for _, stream := range streams {
 			csvRec := &csvRecord{

@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"os"
@@ -9,24 +9,49 @@ import (
 )
 
 const (
+	// TODO: is there are best way to handle the amount of workers?
 	recordMarshalerWorkers = 4
 	csvWriterWorkers       = 2
 )
 
-type destinationCsv struct {
+// DestinationCsv is the Airbyte destination connector
+// to write data in csv files
+type DestinationCsv struct {
 	rootPath string
+
+	rm RecordMarshaler
+	cw CsvWriter
+
+	csvRecordChan              CsvRecordChannel
+	recordMarshalerWorkersChan chan (bool)
+	csvWriterWorkersChan       chan (bool)
 }
 
 type destinationConfiguration struct {
 	DestinationPath string `json:"destination_path"`
 }
 
-func newDestinationCsv(rootPath string) *destinationCsv {
-	return &destinationCsv{rootPath}
+// NewDestinationCsv creates a new instance of DestinationCsv
+func NewDestinationCsv(
+	rootPath string,
+	rm RecordMarshaler,
+	cw CsvWriter,
+	csvRecordChan CsvRecordChannel,
+	recordMarshalerWorkersChan chan (bool),
+	csvWriterWorkersChan chan (bool),
+) *DestinationCsv {
+	return &DestinationCsv{
+		rootPath,
+		rm,
+		cw,
+		csvRecordChan,
+		recordMarshalerWorkersChan,
+		csvWriterWorkersChan,
+	}
 }
 
 // Spec returns the schema which described how the destination connector can be configured
-func (d *destinationCsv) Spec(
+func (d *DestinationCsv) Spec(
 	mw messenger.MessageWriter,
 	cp messenger.ConfigParser,
 ) (*protocol.ConnectorSpecification, error) {
@@ -60,7 +85,7 @@ func (d *destinationCsv) Spec(
 }
 
 // Check verifies that, given a configuration, data can be accessed properly
-func (d *destinationCsv) Check(
+func (d *DestinationCsv) Check(
 	mw messenger.MessageWriter,
 	cp messenger.ConfigParser,
 ) error {
@@ -71,7 +96,7 @@ func (d *destinationCsv) Check(
 // Write takes the data from the record channel
 // and stores it in the destination
 // Note: all channels except record channel from hub needs to be closed
-func (d *destinationCsv) Write(
+func (d *DestinationCsv) Write(
 	cc *protocol.ConfiguredCatalog,
 	mw messenger.MessageWriter,
 	cp messenger.ConfigParser,
@@ -88,43 +113,39 @@ func (d *destinationCsv) Write(
 		return
 	}
 
-	csvRecordChan := newCsvRecordChannel()
-	recordMarshalerWorkersChan := make(chan bool)
-	csvWriterWorkersChan := make(chan bool)
-
-	rm := newRecordMarshaler(hub, csvRecordChan, recordMarshalerWorkersChan)
-	rm.writeHeaders(cc.Streams)
+	// rm := newRecordMarshaler(hub, csvRecordChan, recordMarshalerWorkersChan)
+	d.rm.ExtractHeaders(cc.Streams)
 	for i := 0; i < recordMarshalerWorkers; i++ {
-		rm.addWorker()
+		d.rm.AddWorker(hub)
 	}
 
-	cw := newCsvWriter(
-		hub,
-		csvRecordChan,
-		absoluteDestinationPath,
-		csvWriterWorkersChan,
-	)
+	// cw := newCsvWriter(
+	// 	hub,
+	// 	csvRecordChan,
+	// 	absoluteDestinationPath,
+	// 	csvWriterWorkersChan,
+	// )
 	for i := 0; i < csvWriterWorkers; i++ {
-		cw.addWorker()
+		d.cw.AddWorker(hub, absoluteDestinationPath)
 	}
 
 	for i := 0; i < recordMarshalerWorkers; i++ {
-		<-recordMarshalerWorkersChan
+		<-d.recordMarshalerWorkersChan
 	}
-	close(csvRecordChan)
+	close(d.csvRecordChan)
 	for i := 0; i < csvWriterWorkers; i++ {
-		<-csvWriterWorkersChan
+		<-d.csvWriterWorkersChan
 	}
 
-	close(recordMarshalerWorkersChan)
-	close(csvWriterWorkersChan)
+	close(d.recordMarshalerWorkersChan)
+	close(d.csvWriterWorkersChan)
 
-	cw.closeAndFlush()
+	d.cw.CloseAndFlush()
 
 	close(hub.GetErrorChannel())
 }
 
-func (d *destinationCsv) createDestinationPath(
+func (d *DestinationCsv) createDestinationPath(
 	cp messenger.ConfigParser,
 ) (string, error) {
 	var dc destinationConfiguration
