@@ -2,3 +2,5 @@ github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/theobitoproject/kankuro v1.22.0 h1:CQjzsdEMjAhZJf2sJoytLNml/M71v/kHstEykIKhsrc=
 github.com/theobitoproject/kankuro v1.22.0/go.mod h1:KcsAkVeELTnvd0d17eVb3T075v4F4r3R9RirbOCRTkc=
+github.com/theobitoproject/kankuro v1.23.0 h1:joSBlRBg73hYqAhIdi1/MletALJ76mVApqLSP5wRMuQ=
+github.com/theobitoproject/kankuro v1.23.0/go.mod h1:KcsAkVeELTnvd0d17eVb3T075v4F4r3R9RirbOCRTkc=

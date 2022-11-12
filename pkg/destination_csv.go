@@ -71,6 +71,7 @@ func (d *DestinationCsv) Spec(
 			Properties: protocol.Properties{
 				Properties: map[protocol.PropertyName]protocol.PropertySpec{
 					"destination_path": {
+						Title:       "Destination path",
 						Description: "path where files will be placed",
 						PropertyType: protocol.PropertyType{
 							Type: []protocol.PropType{
